@@ -7,7 +7,26 @@ from sets import Set
 import numpy as np
 import time
 from collections import deque
+from random import choice
 
+def flip_up(level):
+    return level[::-1]
+
+def flip_left(level):
+    return level[::-1]
+
+def rotate(level):
+    return flip_up(flip_left(level))
+
+def random_translation(level):
+    translation_map = {
+        1: flip_up,
+        2: flip_left,
+        3: rotate,
+    }
+    choices = [x for x in translation_map]
+
+    return translation_map[choice(choices)](level)
 
 desired_map = [
   "  xxxxxxxxxxxxxxxxxxxx  ",
@@ -99,6 +118,8 @@ level = Level(desired_map[:])
 # The brain of our player
 agent = AgentController()
 
+completed_goal_count = 0
+
 # Find our player
 player = [x for x in level.actors if x.type == "Player"][0]
 
@@ -133,8 +154,9 @@ while True:
     # apply the action to our game:
     player._move(action)
 
+    reward = -8 if (player.pos in move_history) else 0
+    print reward
     move_history.append(player.pos)
-
 
     keymap = agent.code_from_int(action)
 
@@ -147,31 +169,24 @@ while True:
 
     goalbound_reward = 2 if old_distance > new_distance else 0
 
-    reward = goalbound_reward
+    reward = reward + goalbound_reward
+
     done = False
     weigh = lambda weight, i, chs: sum([weight for x in i if x in chs])
 
     # We do like seeing empty spaces, coins, and the goal however
-    optimal_space_reward_sum = weigh(1, s_ch, ["G"])
-    coin_seen_reward = weigh(len(player.seen) / 8, s_ch, ["o"])
-
+    # optimal_space_reward_sum = weigh(1, s_ch, ["G"])
+    # coin_seen_reward = weigh(len(player.seen) / 8, s_ch, ["o"])
     player.has_explored()
 
     currently_seen = len(player.seen)
     reward += 1 if last_seen < currently_seen else 0
-    reward -= 1 if (player.pos in move_history) else 0
 
-    percentage_explored = len(player.seen) * 1.5
-    reward = reward + optimal_space_reward_sum + coin_seen_reward
-
-    reward = reward / len(player.seen)
-    reward += coin_count
-
-    # if touched_wall:
-    #     reward = -100
+    # percentage_explored = len(player.seen) * 1.5
+    # reward = reward + optimal_space_reward_sum + coin_seen_reward
 
     if touched_lava:
-        reward -= reward * 4
+        reward -= 5
         done = True
 
     if touched_wall:
@@ -180,20 +195,26 @@ while True:
         done = True
 
     if touched_goal:
-        reward += reward
+        reward += 2
         done = True
+        completed_goal_count += 1
 
     if count == 1000:
         done = True
         reward = reward / 2
 
     if touched_coin:
-        coin_count += 1
+        reward += 1
 
     # Reward or punish the agent for it's good/bad work
     agent.reward_action(observation, new_observation, action, reward, done=done)
-
+    # print reward
     if done:
+        if touched_goal and completed_goal_count == 10:
+            # Reset our map
+            level = Level(random_translation(desired_map[:]))
+            completed_goal_count = 5
+
         # Reset our map
         level = Level(desired_map[:])
 

@@ -88,7 +88,7 @@ class CNN:
 
     self.loss = tf.reduce_sum(tf.square(self.labels_placeholder - self.q_vals)) + reg
 
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate = self.lr)
+    optimizer = tf.train.AdamOptimizer(learning_rate = self.lr, use_locking=True)
 
     self.train_op = optimizer.minimize(self.loss)
     init = tf.initialize_all_variables()
