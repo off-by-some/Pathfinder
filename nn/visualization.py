@@ -57,8 +57,7 @@ class Button:
 
 class Display:
     def __init__(self, level):
-        self.size = (WIDTH, HEIGHT)
-        self.screen = pygame.display.set_mode(self.size)
+        self.resize(level)
         pygame.display.set_caption("pathfinder")
         self.font = pygame.font.SysFont("monospace", 18)
         self.episode = 0
@@ -69,6 +68,19 @@ class Display:
 
         # The action we pressed
         self.action = None
+
+    def resize(self, level):
+        level_height = len(level)
+        level_width = len(level[0])
+        self.level_width = level_width
+        self.level_height = level_height
+        self.scale = min(WIDTH / level_width, HEIGHT / level_height)
+        s_lw = level_width * self.scale
+        s_lh = level_height * self.scale
+        width = s_lw if s_lw <= WIDTH else WIDTH
+        height = s_lh if s_lh < HEIGHT else HEIGHT
+        self.size = (width, height)
+        self.screen = pygame.display.set_mode(self.size)
 
     def draw(self, mouse, level):
         scale_x = WIDTH / len(level[0])
@@ -87,26 +99,26 @@ class Display:
         # Our offsets on where we are
         x_pos = 0
         y_pos = 0
-        for y in range(per_y):
+        for y in range(len(level)):
             line = level[y]
-            for x in range(per_x):
+            for x in range(len(level[0])):
                 ch = line[x]
 
                 if (ch == "x"):
-                    pygame.draw.rect(self.screen, BLACK, [scale_x * x, scale_y * y, block[0], block[1]], 0)
+                    pygame.draw.rect(self.screen, BLACK, [self.scale * x, self.scale * y, self.scale, self.scale], 0)
                 if (ch == "G"):
-                    pygame.draw.rect(self.screen, random.choice([GREEN, RED, BLUE]), [scale_x * x, scale_y * y, block[0], block[1]], 0)
+                    pygame.draw.rect(self.screen, random.choice([GREEN, RED, BLUE]), [self.scale * x, self.scale * y, self.scale, self.scale], 0)
                 if (ch == "!"):
-                    pygame.draw.rect(self.screen, RED, [scale_x * x, scale_y * y, block[0], block[1]], 0)
+                    pygame.draw.rect(self.screen, RED, [self.scale * x, self.scale * y, self.scale, self.scale], 0)
                 if (ch == "o"):
-                    pygame.draw.circle(self.screen, BLACK, (scale_x * x + (scale_x / 2), scale_y * y + (scale_x / 2)), int(scale_x / 1.6), 0)
-                    pygame.draw.circle(self.screen, YELLOW, (scale_x * x + (scale_x / 2), scale_y * y + (scale_x / 2)), scale_x / 2, 0)
+                    pygame.draw.circle(self.screen, BLACK, (self.scale * x + (self.scale / 2), self.scale * y + (self.scale / 2)), int(self.scale / 1.6), 0)
+                    pygame.draw.circle(self.screen, YELLOW, (self.scale * x + (self.scale / 2), self.scale * y + (self.scale / 2)), self.scale / 2, 0)
                 if (ch == "@"):
-                    pygame.draw.circle(self.screen, BLUE, (scale_x * x + (scale_x / 2), scale_y * y + (scale_x / 2)), scale_x / 2, 0)
+                    pygame.draw.circle(self.screen, BLUE, (self.scale * x + (self.scale / 2), self.scale * y + (self.scale / 2)), self.scale / 2, 0)
                 if (ch == "."):
-                    pygame.draw.circle(self.screen, GREEN, (scale_x * x + (scale_x / 2), scale_y * y + (scale_x / 2)), scale_x / 6, 0)
+                    pygame.draw.circle(self.screen, GREEN, (self.scale * x + (self.scale / 2), self.scale * y + (self.scale / 2)), self.scale / 6, 0)
                 if (ch == ":"):
-                    pygame.draw.circle(self.screen, GAINSBORO, (scale_x * x + (scale_x / 2), scale_y * y + (scale_x / 2)), scale_x / 6, 0)
+                    pygame.draw.circle(self.screen, GAINSBORO, (self.scale * x + (self.scale / 2), self.scale * y + (self.scale / 2)), self.scale / 6, 0)
 
 
                 x_pos += 1
