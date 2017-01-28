@@ -14,8 +14,10 @@ setup(
     url='http://github.com/pholey/vcfx',
     packages=find_packages('.'),
     install_requires=[
-        'tornado',
         'numpy',
+        'prettyprint',
+        'pygame',
+        'tensorflow',
     ],
     extras_require={
         'test': ['pytest']
