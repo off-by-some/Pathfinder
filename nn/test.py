@@ -7,26 +7,25 @@ from sets import Set
 import numpy as np
 import time
 from collections import deque
+import random
 from random import choice
 
 def flip_up(level):
     return level[::-1]
 
 def flip_left(level):
-    return level[::-1]
+    return [x[::-1] for x in level]
 
 def rotate(level):
     return flip_up(flip_left(level))
 
 def random_translation(level):
-    translation_map = {
-        1: flip_up,
-        2: flip_left,
-        3: rotate,
-    }
-    choices = [x for x in translation_map]
-
-    return translation_map[choice(choices)](level)
+    translation_map = [
+        flip_up,
+        flip_left,
+        rotate,
+    ]
+    return choice(translation_map)(level)
 
 desired_map = [
   "  xxxxxxxxxxxxxxxxxxxx  ",
@@ -113,10 +112,11 @@ desired_map2 = [
 
 from level import Level
 
-level = Level(desired_map[:])
-
 # The brain of our player
 agent = AgentController()
+
+level = Level(desired_map[:], agent)
+
 
 completed_goal_count = 0
 
@@ -129,16 +129,21 @@ last_action = None
 # record the last position
 last_distance = distance_from_goal()
 count = 0
+done_count = 0
+global_count = 0
 display = Display(desired_map[:])
 previously_seen = Set()
 coin_count = 0
 move_history = deque(maxlen=15)
+zero_state = np.zeros((1, agent.dqn.model.hidden_size))
+state_in = (zero_state, np.copy(zero_state))
+state_out = state_in
 while True:
     observation = player.get_sight(coords=True, norm=True)
     # pp(observation)
 
     # Ask the agent what we should do with this state
-    action = agent.get_action(observation)
+    action, state_out = agent.get_action(observation, state_in)
 
     # store our last move
 
@@ -154,8 +159,9 @@ while True:
     # apply the action to our game:
     player._move(action)
 
-    reward = -8 if (player.pos in move_history) else 0
-    print reward
+    backtrack_amt = -1 if action < 4 else -0.3
+    reward = backtrack_amt if (player.pos in move_history) else 0
+    # reward = 0
     move_history.append(player.pos)
 
     keymap = agent.code_from_int(action)
@@ -167,7 +173,7 @@ while True:
     new_distance = distance_from_goal()
 
 
-    goalbound_reward = 2 if old_distance > new_distance else 0
+    goalbound_reward = 1 if old_distance > new_distance else -0.1 if old_distance < new_distance else 0
 
     reward = reward + goalbound_reward
 
@@ -191,11 +197,11 @@ while True:
 
     if touched_wall:
         # reward -= (reward * 4)
-        reward = -5
+        reward = -3
         done = True
 
     if touched_goal:
-        reward += 2
+        reward += 6
         done = True
         completed_goal_count += 1
 
@@ -204,19 +210,23 @@ while True:
         reward = reward / 2
 
     if touched_coin:
-        reward += 1
+        reward += 1.5
 
     # Reward or punish the agent for it's good/bad work
-    agent.reward_action(observation, new_observation, action, reward, done=done)
+    agent.reward_action(observation, new_observation, action, state_in, state_out, reward, done=done)
+    state_in = state_out
     # print reward
     if done:
-        if touched_goal and completed_goal_count == 10:
-            # Reset our map
-            level = Level(random_translation(desired_map[:]))
-            completed_goal_count = 5
-
+        done_count += 1
+        state_in = (zero_state, np.copy(zero_state))
         # Reset our map
-        level = Level(desired_map[:])
+        level = Level(desired_map[:], agent)
+
+        if touched_goal and completed_goal_count > 10:
+            print "#TRIGGERED"
+            # Reset our map
+            level = Level(random_translation(desired_map[:]), agent)
+            completed_goal_count = 5
 
         move_history = deque(maxlen=15)
 
@@ -235,7 +245,7 @@ while True:
 
     # Display:
     # Maintain a copy of our level for display purposes
-    l = Level(level.original[:])
+    l = Level(level.original[:], agent)
 
     # If the show fog button was hit in the display, iterate through our seen items
     # : = seen over n steps, . = seen over current step
@@ -261,9 +271,15 @@ while True:
     display.current_reward = agent.reward_sum
     display.mean_reward = np.mean(agent.buf)
     display.action = keymap
+    display.player = player
     display.update(l.original)
     agent.reward_sum = 0
     count += 1
+
+    if (global_count % 30) == 0:
+        print done_count
+
+    global_count += 1
 
     # char_mult = len(l.original[0])
     # print("#" * char_mult)

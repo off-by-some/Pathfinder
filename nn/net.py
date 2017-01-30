@@ -8,20 +8,19 @@ class AgentController:
   def __init__(self):
     self.successes = 0
     self.fails = 0
-    self.possible_action_count = 4
+    self.possible_action_count = 6
     self.steps = 200
     self.buf = deque(maxlen=100)
     self.reward_sum = 0
     self.distance = 200
+    self.n_eyes = 210 * 2
     # initialize dqn learning
-    self.dqn = DQN(self.possible_action_count, (200*2,1))
+    self.dqn = DQN(self.possible_action_count, (self.n_eyes,1))
 
   def code_from_int(self, intt):
-      if intt == 0: return "up"
-      elif intt == 1: return "right"
-      elif intt == 2: return "down"
-      elif intt == 3: return "left"
-      elif intt == 4: return "jump"
+      codes = ["up", "right", "down", "left", "jump", "rotate_left", "rotate_right" ,"attack"]
+      if (intt < len(codes)):
+          return codes[intt]
       else: return "attack"
 
 
@@ -54,13 +53,13 @@ class AgentController:
     return o, reward, done, 1
 
   # Get an action for an observation
-  def get_action(self, o):
+  def get_action(self, o, state_in):
     # select action based on the model
-    return self.dqn.select_action(o)
+    return self.dqn.select_action(o, state_in)
 
-  def reward_action(self, o, n_o, action, reward, done=False, train=True):
+  def reward_action(self, o, n_o, action, s_in, s_out, reward, done=False, train=True):
     # update the state
-    self.dqn.update_state(action, o, n_o, reward, done)
+    self.dqn.update_state(action, o, n_o, s_in, s_out, reward, done)
     self.reward_sum += reward
 
     if train:
@@ -73,6 +72,9 @@ class AgentController:
 
   def run_observation(self, o):
     # observation = np.zeros((720, ))
+    zero_state = np.zeros((1, self.dqn.model.hidden_size))
+    state_in = (zero_state, np.copy(zero_state))
+    state_out = state_in
     for t in range(self.steps):
 
       # Have we reached our target?
@@ -80,18 +82,19 @@ class AgentController:
         break
 
       # select action based on the model
-      action = self.dqn.select_action(o)
+      action, state_out = self.dqn.select_action(o)
 
       # execute actin in emulator
       new_observation, reward, done, _ = self.calculate_action(o, action)
 
       # update the state
-      self.dqn.update_state(action, o, new_observation, reward, done)
+      self.dqn.update_state(action, o, new_observation, state_in, state_out, reward, done)
 
       o = new_observation
 
       # train the model
       self.dqn.train_step()
+      state_in = state_out
 
       self.reward_sum += reward
       sp.call('clear',shell=True)

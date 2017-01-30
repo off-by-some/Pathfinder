@@ -30,8 +30,11 @@ def bounding_coords(x, y):
     return (x, y - 1), (x + 1, y - 1), (x + 1, y), (x + 1, y + 1), (x, y + 1), (x - 1, y + 1), (x - 1, y), (x - 1, y - 1)
 
 class Actor:
-    def __init__(self, x, y, ch, l):
+    def __init__(self, x, y, heading, ch, l):
         self.pos = (x, y)
+        self.heading = heading
+        # in radians
+        self.viewing_angle = (2 * math.pi) / 3
         self.surrounding = surrounding_coords(x, y)
         self.ch = ch
         self.type = actorChars[ch]
@@ -69,9 +72,9 @@ class Actor:
 
     def get_sight(self, coords=False, norm=False):
         eyes = []
-        eye_count = 200
+        eye_count = self.level.agent.n_eyes / 2
         for eye in xrange(0, eye_count):
-            ch, distance, x, y = self.raycast(eye * (math.pi / (eye_count / 2)), coords)
+            ch, distance, x, y = self.raycast(self.heading + (eye * (self.viewing_angle / eye_count)), coords)
             if not coords:
                 eyes += [ord(ch), distance]
             elif norm:
@@ -94,7 +97,7 @@ class Actor:
         """
           Grabs the character the agent would move to given an action
         """
-        return self.get_surrounding_ch()[action]
+        return self.get_surrounding_ch()[min(action, 3)]
 
     def distance_from(self, x, y):
         gx, gy = self.pos
@@ -113,24 +116,29 @@ class Actor:
 
     # Move up: 0, Right: 1, Down: 2, Left: 3
     def _move(self, t):
-        direction = self.surrounding[t]
-        # See if anything is occupying the next slot
-        occupant = self.level.get_ch(*direction)
-        if not world_chars.get(occupant):
-            # Set our current position to nothing
-            self.level.set_ch(*self.pos, value=" ")
-            self.level.set_ch(*direction, value=self.ch)
-            self.pos = direction
-            self.surrounding = surrounding_coords(*direction)
-            # self.seen = self.seen + self.get_sight(coords=True)
+        if (t < 4):
+            direction = self.surrounding[t]
+            # See if anything is occupying the next slot
+            occupant = self.level.get_ch(*direction)
+            if not world_chars.get(occupant):
+                # Set our current position to nothing
+                self.level.set_ch(*self.pos, value=" ")
+                self.level.set_ch(*direction, value=self.ch)
+                self.pos = direction
+                self.surrounding = surrounding_coords(*direction)
+                # self.seen = self.seen + self.get_sight(coords=True)
+        else:
+            radian = math.pi / 180.0
+            self.heading += 20 * radian if t < 5 else -20 * radian
 
 class Level:
-    def __init__(self, level):
+    def __init__(self, level, agent):
         self.original = level
         self.width = len(level[0])
         self.height = len(level)
         self.grid = [];
         self.actors = [];
+        self.agent = agent
         self.parsed = self.parse_level(level)
 
     # Return the goal actor
@@ -166,7 +174,7 @@ class Level:
                 ch = line[x]
                 actor = actorChars.get(ch);
                 if actor is not None:
-                    self.actors.append(Actor(x, y, ch, self))
+                    self.actors.append(Actor(x, y, -((2 * math.pi) / 6), ch, self))
 
                 field_type = world_chars.get(ch)
                 grid_line.append(field_type)

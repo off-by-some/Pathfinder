@@ -1,5 +1,6 @@
 import pygame
 import random
+import math
 
 pygame.init()
 
@@ -10,6 +11,7 @@ YELLOW = (255, 255, 0)
 RED = ( 255, 0, 0)
 BLUE = 	(0,0,255)
 GAINSBORO = (220, 220, 220)
+ORANGE = (255, 50, 0)
 
 WIDTH = 800
 HEIGHT = 650
@@ -125,23 +127,34 @@ class Display:
             x_pos = 0
             y_pos += 1
 
+        x = self.player.pos[0]
+        y = self.player.pos[1]
+        start_pos = (self.scale * x + (self.scale / 2), self.scale * y + (self.scale / 2))
+        end_pos = (start_pos[0] + (math.cos(self.player.heading) * 80), start_pos[1] + (math.sin(self.player.heading) * 80))
+        pygame.draw.line(self.screen, ORANGE, start_pos, end_pos, 1)
+        start_pos = (self.scale * x + (self.scale / 2), self.scale * y + (self.scale / 2))
+        end_pos = (start_pos[0] + (math.cos(self.player.heading + self.player.viewing_angle) * 80), start_pos[1] + (math.sin(self.player.heading + self.player.viewing_angle) * 80))
+        pygame.draw.line(self.screen, ORANGE, start_pos, end_pos, 1)
+
 
         label = self.font.render("Current Episode: %s" % self.episode, 1, RED)
         label2 = self.font.render("Current Reward: %s" % self.current_reward, 1, RED)
         label3 = self.font.render("Mean Reward: %s" % self.mean_reward, 1, RED)
         label4 = self.font.render("Action pressed: %s" % self.action, 1, RED)
+        # label5 = self.font.render("Heading: %s" % self.player.heading, 1, RED)
 
         self.screen.blit(label, (40, 20))
         self.screen.blit(label2, (40, 40))
         self.screen.blit(label3, (40, 60))
         self.screen.blit(label4, (40, 80))
+        # self.screen.blit(label5, (40, 100))
 
         btn_text = "Disable" if self.show_fog else "Enable"
 
         # Fog of war button
         self.btn = Button("%s Fog" % btn_text)
 
-        self.btn.draw(self.screen, mouse, (40,100,100,20), (55,103))
+        self.btn.draw(self.screen, mouse, (40,120,120,20), (55,123))
         self.btn.check_hover(mouse)
 
 
