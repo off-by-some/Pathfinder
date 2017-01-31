@@ -13,7 +13,7 @@ class AgentController:
     self.buf = deque(maxlen=100)
     self.reward_sum = 0
     self.distance = 200
-    self.n_eyes = 210 * 2
+    self.n_eyes = 110 * 2
     # initialize dqn learning
     self.dqn = DQN(self.possible_action_count, (self.n_eyes,1))
 

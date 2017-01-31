@@ -34,7 +34,7 @@ class Actor:
         self.pos = (x, y)
         self.heading = heading
         # in radians
-        self.viewing_angle = (2 * math.pi) / 3
+        self.viewing_angle = 110.0 * (math.pi / 180.0)
         self.surrounding = surrounding_coords(x, y)
         self.ch = ch
         self.type = actorChars[ch]
@@ -80,7 +80,8 @@ class Actor:
             elif norm:
                 # Our max ord range, stopping at 'o'
                 max_ord_size = 255.0
-                distance = distance / math.sqrt(len(self.level.original[0]) ** 2 + len(self.level.original) ** 2)
+                # distance = distance / math.sqrt(len(self.level.original[0]) ** 2 + len(self.level.original) ** 2)
+                distance = 1 / distance
                 eyes += [ord(ch) / max_ord_size, distance]
             else:
                 eyes.append((ord(ch), int(x), int(y)))

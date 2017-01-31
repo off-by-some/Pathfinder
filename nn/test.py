@@ -172,8 +172,10 @@ while True:
 
     new_distance = distance_from_goal()
 
+    goalbound_reward = 0
 
-    goalbound_reward = 1 if old_distance > new_distance else -0.1 if old_distance < new_distance else 0
+    if (completed_goal_count < 10):
+        goalbound_reward = 1 if old_distance > new_distance else -0.1 if old_distance < new_distance else 0
 
     reward = reward + goalbound_reward
 

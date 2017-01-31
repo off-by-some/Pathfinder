@@ -22,7 +22,7 @@ class CNN:
 
     self.lr = 0.0001
     self.reg = 0.001
-    self.hidden_size = (self.observation_shape * 2) + 2
+    self.hidden_size = (self.observation_shape * 1) + 4
 
     self.session = self.create_model()
 
@@ -51,28 +51,28 @@ class CNN:
       b2 = tf.get_variable("b2", shape=bshape, initializer = tf.constant_initializer(0.0))
 
     with tf.name_scope("Layer3") as scope:
-      W3shape = [self.hidden_size, 12]
+      W3shape = [self.hidden_size, self.hidden_size]
       W3 = tf.get_variable("W3", shape=W3shape,)
-      bshape = [1, 12]
+      bshape = [1, self.hidden_size]
       b3 = tf.get_variable("b3", shape=bshape, initializer = tf.constant_initializer(0.0))
 
     with tf.name_scope("OutputLayer") as scope:
-      Ushape = [12, self.num_actions]
+      Ushape = [self.hidden_size, self.num_actions]
       U = tf.get_variable("U", shape=Ushape)
       b3shape = [1, self.num_actions]
       b4 = tf.get_variable("b4", shape=b3shape, initializer = tf.constant_initializer(0.0))
 
     xW = tf.matmul(input_obs, W1)
-    h = tf.nn.softsign(tf.add(xW, b1))
+    h = tf.nn.elu(tf.add(xW, b1))
 
     # xW = tf.matmul(h, W2)
-    # h = tf.nn.softsign(tf.add(xW, b2))
+    # h = tf.nn.elu(tf.add(xW, b2))
 
     xW = tf.matmul(h, W2)
     h, output_state = self.lstm(tf.add(xW, b2), input_state)
 
     xW = tf.matmul(h, W3)
-    h = tf.nn.softsign(tf.add(xW, b3))
+    h = tf.nn.elu(tf.add(xW, b3))
 
     hU = tf.matmul(h, U)
     out = tf.add(hU, b4)
@@ -86,7 +86,7 @@ class CNN:
     The model definition.
     """
 
-    self.lstm = tf.nn.rnn_cell.BasicLSTMCell(self.hidden_size)
+    self.lstm = tf.nn.rnn_cell.BasicLSTMCell(self.hidden_size, activation=tf.nn.softsign)
     self.input_placeholder, self.labels_placeholder, self.actions_placeholder, self.state_in = self.add_placeholders()
     outputs, reg, state = self.nn(self.input_placeholder, self.state_in)
     self.predictions = outputs
